@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Scrollable Image Gallery with Streaming BGM</title>
+  <style>
+    body, html {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      overflow: auto; /* Enable scrolling */
+      background-color: black;
+      color: white;
+      font-family: Arial, sans-serif;
+    }
+    .fullscreen-image {
+      width: 100%;
+      height: 100vh; /* Each image takes up the full viewport height */
+      object-fit: cover;
+    }
+    .section {
+      height: 100vh; /* Each section takes up the full viewport height */
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+    }
+    .section h1 {
+      font-size: 3rem;
+    }
+  </style>
+</head>
+<body>
+  <!-- Fullscreen Image Sections -->
+  <div class="section">
+    <img class="fullscreen-image" src="poem.jpg" alt="Image 1">
+  </div>
+
+  <!-- Audio Element -->
+  <audio id="bgm" hidden autoplay loop></audio>
+
+  <script>
+    const audio = document.getElementById('bgm');
+
+    // Function to stream audio in chunks
+    async function streamAudio() {
+      const audioUrl = 'bgm.mp3'; // Replace with your audio file URL
+      const chunkSize = 100000; // Size of each chunk in bytes (adjust as needed)
+
+      let startByte = 0;
+      let endByte = chunkSize;
+
+      while (true) {
+        // Fetch the next chunk of the audio
+        const response = await fetch(audioUrl, {
+          headers: { 'Range': `bytes=${startByte}-${endByte}` }
+        });
+
+        if (!response.ok) break; // Stop if the response is invalid
+
+        // Convert the chunk to a blob and create a URL for it
+        const blob = await response.blob();
+        const chunkUrl = URL.createObjectURL(blob);
+
+        // Update the audio source
+        audio.src = chunkUrl;
+
+        // Wait for the audio to finish playing the current chunk
+        await new Promise((resolve) => {
+          audio.addEventListener('ended', resolve, { once: true });
+        });
+
+        // Move to the next chunk
+        startByte = endByte + 1;
+        endByte = startByte + chunkSize;
+      }
+    }
+
+    // Start streaming the audio
+    streamAudio().catch(error => console.error('Error streaming audio:', error));
+  </script>
+</body>
+</html>

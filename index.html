@@ -3,82 +3,69 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Scrollable Image Gallery with Streaming BGM</title>
+  <title>Image Gallery with BGM</title>
   <style>
     body, html {
       margin: 0;
       padding: 0;
       height: 100%;
-      overflow: auto; /* Enable scrolling */
+      overflow: hidden; /* Disable scrolling */
       background-color: black;
-      color: white;
-      font-family: Arial, sans-serif;
     }
-    .fullscreen-image {
+    #fullscreen-image {
       width: 100%;
-      height: 100vh; /* Each image takes up the full viewport height */
-      object-fit: cover;
-    }
-    .section {
-      height: 100vh; /* Each section takes up the full viewport height */
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      text-align: center;
-    }
-    .section h1 {
-      font-size: 3rem;
+      height: 100%;
+      object-fit: contain; /* Ensure the image fits within the viewport */
+      position: absolute;
+      top: 0;
+      left: 0;
     }
   </style>
 </head>
 <body>
-  <!-- Fullscreen Image Sections -->
-  <div class="section">
-    <img class="fullscreen-image" src="poem.jpg" alt="Image 1">
-  </div>
+  <!-- Fullscreen Image -->
+  <img id="fullscreen-image" src="poem.jpg" alt="Fullscreen Image">
 
   <!-- Audio Element -->
-  <audio id="bgm" hidden autoplay loop></audio>
+  <audio id="bgm" hidden autoplay loop>
+    <source src="bgm.mp3" type="audio/mpeg">
+    Your browser does not support the audio element.
+  </audio>
 
   <script>
     const audio = document.getElementById('bgm');
+    const image = document.getElementById('fullscreen-image');
 
-    // Function to stream audio in chunks
-    async function streamAudio() {
-      const audioUrl = 'bgm.mp3'; // Replace with your audio file URL
-      const chunkSize = 100000; // Size of each chunk in bytes (adjust as needed)
+    // Function to adjust the page size based on the image's aspect ratio
+    function adjustPageSize() {
+      const imageAspectRatio = image.naturalWidth / image.naturalHeight;
+      const windowAspectRatio = window.innerWidth / window.innerHeight;
 
-      let startByte = 0;
-      let endByte = chunkSize;
-
-      while (true) {
-        // Fetch the next chunk of the audio
-        const response = await fetch(audioUrl, {
-          headers: { 'Range': `bytes=${startByte}-${endByte}` }
-        });
-
-        if (!response.ok) break; // Stop if the response is invalid
-
-        // Convert the chunk to a blob and create a URL for it
-        const blob = await response.blob();
-        const chunkUrl = URL.createObjectURL(blob);
-
-        // Update the audio source
-        audio.src = chunkUrl;
-
-        // Wait for the audio to finish playing the current chunk
-        await new Promise((resolve) => {
-          audio.addEventListener('ended', resolve, { once: true });
-        });
-
-        // Move to the next chunk
-        startByte = endByte + 1;
-        endByte = startByte + chunkSize;
+      if (imageAspectRatio > windowAspectRatio) {
+        // Image is wider than the window
+        image.style.width = '100%';
+        image.style.height = 'auto';
+      } else {
+        // Image is taller than the window
+        image.style.width = 'auto';
+        image.style.height = '100%';
       }
     }
 
-    // Start streaming the audio
-    streamAudio().catch(error => console.error('Error streaming audio:', error));
+    // Adjust the page size when the image loads
+    image.addEventListener('load', adjustPageSize);
+
+    // Adjust the page size when the window is resized
+    window.addEventListener('resize', adjustPageSize);
+
+    // Play audio after user interaction (to comply with autoplay policies)
+    document.addEventListener('click', () => {
+      audio.play().catch(error => console.error('Error playing audio:', error));
+    });
+
+    // Optional: Log audio events for debugging
+    audio.addEventListener('play', () => console.log('Audio started playing'));
+    audio.addEventListener('error', (e) => console.error('Audio error:', e));
   </script>
 </body>
 </html>
